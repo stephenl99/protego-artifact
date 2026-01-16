@@ -10,8 +10,8 @@
 	branch = coresync
 [submodule "caladan"]
 	path = caladan
-	url = https://github.com/estuhr1206/caladan-overload-control.git
-	branch = breakwater_core_park_fix
+	url = https://github.com/stephenl99/caladan-overload-control.git
+	branch = exact-version
 [submodule "silo"]
 	path = silo
 	url = https://github.com/shenango/silo.git

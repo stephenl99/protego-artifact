@@ -15,7 +15,7 @@ for timeseries, might just have to run this one at a time
 
 """
 # Server overload algorithm (breakwater, seda, dagor, nocontrol)
-
+NET_RTT = 10
 SPIN_SERVER = False
 POLICY = "coresync"
 
@@ -66,14 +66,14 @@ NUM_CONNS = 100
 # List of offered load
 # OFFERED_LOADS = [500000, 1000000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000, 4500000, 5000000, 5500000, 6000000, 6500000, 7000000, 7500000, 8000000]
 # OFFERED_LOADS = [100000]
-OFFERED_LOADS = [100000 * (i + 1) for i in range(10)]
+OFFERED_LOADS = [300000 * (i + 1) for i in range(20)]
 
 ENABLE_DIRECTPATH = True
 # SPIN_SERVER = False # disabling, I think we default to caladan?
 DISABLE_WATCHDOG = False
 
-NUM_CORES_SERVER = 16
-NUM_CORES_CLIENT = 16
+NUM_CORES_SERVER = 8
+NUM_CORES_CLIENT = 8
 
 slo = 50
 # POPULATING_LOAD = 200000
@@ -155,8 +155,8 @@ for i in range(NUM_AGENT):
     agent_ip = "192.168.1." + str(101 + i);
     agent_ips.append(agent_ip)
 
-# k = paramiko.RSAKey.from_private_key_file(KEY_LOCATION)
-k = paramiko.Ed25519Key.from_private_key_file(KEY_LOCATION)
+k = paramiko.RSAKey.from_private_key_file(KEY_LOCATION)
+# k = paramiko.Ed25519Key.from_private_key_file(KEY_LOCATION)
 # connection to server
 server_conn = paramiko.SSHClient()
 server_conn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -261,13 +261,13 @@ execute_remote([server_conn, client_conn] + agent_conns,
 
 # Build Silo
 print("Building Silo...")
-cmd = "cd ~/{}/silo && make clean && ./remake-silo.sh"\
+cmd = "cd ~/{}/silo && sudo make clean && sudo bash ./remake-silo.sh"\
         .format(ARTIFACT_PATH)
 execute_remote([server_conn], cmd, True)
 
 # Build McClient
 print("Building Silo client...")
-cmd = "cd ~/{}/silo-client && make clean && make"\
+cmd = "cd ~/{}/silo-client && sudo make clean && sudo make"\
         .format(ARTIFACT_PATH)
 execute_remote([client_conn] + agent_conns, cmd, True)
 
@@ -435,4 +435,3 @@ execute_local(cmd, False)
 
 print("Output generated: outputs/{}_3/{}.csv".format(POLICY.lower(), output_prefix))
 print("Done.")
-
