@@ -197,27 +197,27 @@ else:
 
 # exit(0)
 
-# Distribuing config files
-print("Distributing configs...")
-# - server
-cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-        " {}@{}:~/{}/caladan/breakwater/src/ >/dev/null"\
-        .format(KEY_LOCATION, USERNAME, SERVERS[0], ARTIFACT_PATH)
-execute_local(cmd)
+# # Distribuing config files
+# print("Distributing configs...")
+# # - server
+# cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
+#         " {}@{}:~/{}/caladan/breakwater/src/ >/dev/null"\
+#         .format(KEY_LOCATION, USERNAME, SERVERS[0], ARTIFACT_PATH)
+# execute_local(cmd)
 
 
 
-# - client
-cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-        " {}@{}:~/{}/caladan/breakwater/src/ >/dev/null"\
-        .format(KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
-execute_local(cmd)
-# - agents
-for agent in AGENTS:
-    cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-            " {}@{}:~/{}/caladan/breakwater/src/ >/dev/null"\
-            .format(KEY_LOCATION, USERNAME, agent, ARTIFACT_PATH)
-    execute_local(cmd)
+# # - client
+# cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
+#         " {}@{}:~/{}/caladan/breakwater/src/ >/dev/null"\
+#         .format(KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
+# execute_local(cmd)
+# # - agents
+# for agent in AGENTS:
+#     cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
+#             " {}@{}:~/{}/caladan/breakwater/src/ >/dev/null"\
+#             .format(KEY_LOCATION, USERNAME, agent, ARTIFACT_PATH)
+#     execute_local(cmd)
 
 
 # # getting new memcached in there
