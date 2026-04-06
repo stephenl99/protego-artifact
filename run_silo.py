@@ -80,6 +80,12 @@ slo = 50
 
 BREAKWATER_TIMESERIES = True
 
+# TPC-C workload mix: five comma-separated percentages, no spaces. Last arg to silotpcc-shenango.
+# silochanges.patch calls init_shenango(argv[1], port, argv[2]) with signature (cfgpath, port, oc_algo),
+# so argv[1]=server.config, argv[2]=overload algo (not the usage-string order).
+# ./silotpcc-shenango server.config <oc_algo> <nthreads> <port> <memory> [<mix>]
+SILO_TXN_WORKLOAD_MIX = "100,0,0,0,0"
+
 ############################
 ### End of configuration ###
 ############################
@@ -328,8 +334,8 @@ for offered_load in OFFERED_LOADS:
     # exit(0)
     # Start silo
     print("Starting Silo server...")
-    cmd = "cd ~/{}/silo && sudo LD_LIBRARY_PATH=$(dirname $(find . -name \"liblz4.so\")) ./silotpcc-shenango server.config {} 1 8001 3221225472 > stdout.out"\
-            .format(ARTIFACT_PATH, OVERLOAD_ALG)
+    cmd = "cd ~/{}/silo && sudo LD_LIBRARY_PATH=$(dirname $(find . -name \"liblz4.so\")) ./silotpcc-shenango server.config {} 1 8001 3221225472 {} > stdout.out 2>&1"\
+            .format(ARTIFACT_PATH, OVERLOAD_ALG, SILO_TXN_WORKLOAD_MIX)
     print("Command to run silo server:", cmd)
     server_session = execute_remote([server_conn], cmd, False)
     server_session = server_session[0]
