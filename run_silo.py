@@ -84,7 +84,7 @@ BREAKWATER_TIMESERIES = True
 # silochanges.patch calls init_shenango(argv[1], port, argv[2]) with signature (cfgpath, port, oc_algo),
 # so argv[1]=server.config, argv[2]=overload algo (not the usage-string order).
 # ./silotpcc-shenango server.config <oc_algo> <nthreads> <port> <memory> [<mix>]
-SILO_TXN_WORKLOAD_MIX = "0,100,0,0,0"
+SILO_TXN_WORKLOAD_MIX = "100,0,0,0,0"
 
 ############################
 ### End of configuration ###
@@ -350,7 +350,10 @@ for offered_load in OFFERED_LOADS:
             " {:d} {:d} {:d} 0 >> stdout.out 2>&1"\
             .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip, slo, NUM_AGENT, offered_load)
     print(f"Command to run Silo client for {offered_load} mrps: {cmd}")
-    client_agent_sessions += execute_remote([client_conn], cmd, False)
+    client_sessions = execute_remote([client_conn], cmd, False)
+    print("\tClient execute_remote returned type={}, len={}".format(
+        type(client_sessions), len(client_sessions)))
+    client_agent_sessions += client_sessions
 
     sleep(1)
 
@@ -359,11 +362,19 @@ for offered_load in OFFERED_LOADS:
     cmd = "cd ~/{}/silo-client && sudo ./silo-client {} client.config agent {}"\
             " >> stdout.out 2>&1".format(ARTIFACT_PATH, OVERLOAD_ALG, client_ip)
     print(f"Command to run Silo agent for {offered_load} mrps: {cmd}")
-    client_agent_sessions += execute_remote(agent_conns, cmd, False)
+    agent_sessions = execute_remote(agent_conns, cmd, False)
+    print("\tAgent execute_remote returned type={}, len={}".format(
+        type(agent_sessions), len(agent_sessions)))
+    client_agent_sessions += agent_sessions
     # Wait for client and agents
     print("\tWaiting for client and agents...")
-    for client_agent_session in client_agent_sessions:
-        client_agent_session.recv_exit_status()
+    print("\tTotal sessions in wait list: {}".format(len(client_agent_sessions)))
+    for idx, client_agent_session in enumerate(client_agent_sessions):
+        print("\t[wait {}/{}] At client {}...".format(
+            idx + 1, len(client_agent_sessions), client_agent_session))
+        exit_code = client_agent_session.recv_exit_status()
+        print("\t[wait {}/{}] Exit status: {}".format(
+            idx + 1, len(client_agent_sessions), exit_code))
 
     sleep(2)
     
