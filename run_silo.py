@@ -84,7 +84,7 @@ BREAKWATER_TIMESERIES = True
 # silochanges.patch calls init_shenango(argv[1], port, argv[2]) with signature (cfgpath, port, oc_algo),
 # so argv[1]=server.config, argv[2]=overload algo (not the usage-string order).
 # ./silotpcc-shenango server.config <oc_algo> <nthreads> <port> <memory> [<mix>]
-SILO_TXN_WORKLOAD_MIX = "1,96,1,1,1"
+SILO_TXN_WORKLOAD_MIX = "1,1,96,1,1"
 
 ############################
 ### End of configuration ###
