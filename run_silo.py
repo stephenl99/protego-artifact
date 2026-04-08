@@ -341,6 +341,9 @@ for offered_load in OFFERED_LOADS:
     server_session = server_session[0]
     
     sleep(2)
+    print("\tStarting CPU logging...")
+    cpu_cmd = "mpstat -P ALL 1 > cpu_{}.log 2>&1 &".format(offered_load)
+    execute_remote([server_conn, client_conn] + agent_conns, cpu_cmd, False)
     
     print("Load = {:d}".format(offered_load))
     # - clients
@@ -377,6 +380,9 @@ for offered_load in OFFERED_LOADS:
             idx + 1, len(client_agent_sessions), exit_code))
 
     sleep(2)
+    print("\tStopping CPU logging...")
+    execute_remote([server_conn, client_conn] + agent_conns,
+               "sudo pkill mpstat", True)
     
     cmd = "sudo killall -9 iokerneld silotpcc-shenango"
     execute_remote([server_conn], cmd, True)
