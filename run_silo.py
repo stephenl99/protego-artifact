@@ -66,7 +66,7 @@ NUM_CONNS = 100
 # List of offered load
 # OFFERED_LOADS = [500000, 1000000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000, 4500000, 5000000, 5500000, 6000000, 6500000, 7000000, 7500000, 8000000]
 # OFFERED_LOADS = [100000]
-OFFERED_LOADS = [300000 * (i + 1) for i in range(20)]
+OFFERED_LOADS = [50000 * (i + 1) for i in range(20)]
 
 ENABLE_DIRECTPATH = True
 # SPIN_SERVER = False # disabling, I think we default to caladan?
@@ -86,9 +86,29 @@ BREAKWATER_TIMESERIES = True
 # ./silotpcc-shenango server.config <oc_algo> <nthreads> <port> <memory> [<mix>]
 SILO_TXN_WORKLOAD_MIX = "1,1,1,96,1"
 
+# Server-only powerstat: nice to limit interference with Shenango dataplane.
+# On the Silo *server*: sudo apt install powerstat  (required; use `which powerstat` if not /usr/bin).
+# Without -R, powerstat uses battery discharge (ACPI); servers / AC laptops then report
+# "Device is not discharging, cannot measure power usage."  -R uses CPU RAPL (Intel/AMD where exposed).
+# -d is powerstat's pre-sample delay (seconds before first measurement); 0 = no startup wait.
+# For analysis, trim first/last wall-clock seconds from the per-second samples in plot_silo_power_vs_load.py.
+ENABLE_POWERSTAT = True
+POWERSTAT_DELAY_SEC = 0
+POWERSTAT_USE_RAPL = True
+POWERSTAT_BIN = "/usr/bin/powerstat"
+NICEBIN = "/usr/bin/nice"
+
 ############################
 ### End of configuration ###
 ############################
+
+def _write_silo_power_meta():
+    p = os.path.join("outputs", POLICY.lower() + "_3", "silo_power_meta.txt")
+    with open(p, "w", encoding="utf-8") as f:
+        f.write("ENABLE_POWERSTAT={}\nPOWERSTAT_DELAY_SEC={}\nPOWERSTAT_USE_RAPL={}\nPOWERSTAT_BIN={}\n".format(
+            ENABLE_POWERSTAT, POWERSTAT_DELAY_SEC, POWERSTAT_USE_RAPL, POWERSTAT_BIN))
+
+_write_silo_power_meta()
 
 # Verify configs #
 if OVERLOAD_ALG not in ["breakwater", "seda", "dagor", "nocontrol"]:
@@ -342,8 +362,16 @@ for offered_load in OFFERED_LOADS:
     
     sleep(2)
     print("\tStarting CPU logging...")
+
     cpu_cmd = "mpstat -P ALL 1 > cpu_{}.log 2>&1 &".format(offered_load)
     execute_remote([server_conn, client_conn] + agent_conns, cpu_cmd, False)
+
+    if ENABLE_POWERSTAT:
+        # Absolute paths for PATH under SSH; -R for RAPL on machines without discharging battery.
+        _rapl = " -R" if POWERSTAT_USE_RAPL else ""
+        power_cmd = "( sudo {} -n 19 {}{} -d {} > power_{}.log 2>&1 ) &".format(
+            NICEBIN, POWERSTAT_BIN, _rapl, POWERSTAT_DELAY_SEC, offered_load)
+        execute_remote([server_conn], power_cmd, False)
     
     print("Load = {:d}".format(offered_load))
     # - clients
@@ -383,6 +411,9 @@ for offered_load in OFFERED_LOADS:
     print("\tStopping CPU logging...")
     execute_remote([server_conn, client_conn] + agent_conns,
                "sudo pkill mpstat", True)
+
+    if ENABLE_POWERSTAT:
+        execute_remote([server_conn], "sudo pkill powerstat || true", True, False)
     
     cmd = "sudo killall -9 iokerneld silotpcc-shenango"
     execute_remote([server_conn], cmd, True)
@@ -390,6 +421,15 @@ for offered_load in OFFERED_LOADS:
     cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/{}/silo/timeseries.csv ./outputs/{}_3/{}_timeseries.csv"\
         " >/dev/null".format(KEY_LOCATION, USERNAME, SERVERS[0], ARTIFACT_PATH, POLICY.lower(), offered_load)
     execute_local(cmd)
+
+    cpu_cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/cpu_{}.log ./outputs/{}_3/cpu_server_{}.log >/dev/null"\
+        .format(KEY_LOCATION, USERNAME, SERVERS[0], offered_load, POLICY.lower(), offered_load)
+    execute_local(cpu_cmd)
+
+    if ENABLE_POWERSTAT:
+        power_scp = "scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/power_{}.log ./outputs/{}_3/power_server_{}.log >/dev/null"\
+            .format(KEY_LOCATION, USERNAME, SERVERS[0], offered_load, POLICY.lower(), offered_load)
+        execute_local(power_scp, False)
     
     # cmd = "sudo killall -9 iokerneld"
     # execute_remote([client_conn] + agent_conns, cmd, True)
